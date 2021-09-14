@@ -1,0 +1,50 @@
+name: pytorch_3T27T
+
+channels:
+  - nvidia
+  - pytorch
+  - conda-forge
+
+dependencies:
+  - python=3.8
+  - pytorch=1.9.0
+  - torchvision
+  - torchaudio
+  - cudatoolkit=11.1
+  - tensorboard
+  - numpy
+  - scipy
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - pandas
+  - coverage
+  - pytest
+  - pytest-cov
+  - coveralls
+  - flake8
+  - rope
+  - autopep8
+  - black
+  - click
+  - absl-py
+  - pyyaml
+  - jupyterlab
+  - tqdm
+  - sphinx
+  - awscli # universal cli for AWS
+  - python-dotenv
+  - future # for backwards compatibility
+  - pathlib2 # for backwards compatibility
+  - pip
+  - pip:
+    - duecredit
+    - watermark
+    - torchinfo
+    - dominate
+    - visdom
+    - Pillow
+    - jupyterlab_vim
+    - ipywidgets
+    - nb-clean
+    - -e .  # install package in development mode

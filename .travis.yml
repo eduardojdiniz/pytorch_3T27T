@@ -1,0 +1,27 @@
+language: python
+
+sudo: false
+
+deploy:
+  provider: pypi user: [OPTIONAL] your travis-CI username
+  password:
+    secure:
+  on:
+    tags: true
+    repo: eduardojdiniz/pytorch_3T27T
+
+python:
+  - '3.8'
+
+install:
+- travis_retry pip install -r requirements-dev.txt
+- travis_retry pip install -r requirements.txt
+
+script:
+- flake8 --ignore N802,N806 `find . -name \*.py | grep -v setup.py | grep -v version.py | grep -v __init__.py | grep -v /docs/`
+- mkdir for_test
+- cd for_test
+- py.test --pyargs pytorch_3T27T --cov-report term-missing --cov=pytorch_3T27T
+
+after_success:
+- coveralls
