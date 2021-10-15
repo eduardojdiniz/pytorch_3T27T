@@ -7,13 +7,11 @@ import pytorch_3T27T as pkg
 root = Path(pkg.__path__[0]).parent.absolute()
 readme = pjoin(root, 'README.md')
 
-
 def read_long_description(readme):
     text_type = type(u"")
     with io.open(readme, mode="r", encoding="utf-8") as fd:
         return re.sub(text_type(r":[a-z]+:`~?(.*?)`"), text_type(r"``\1``"),
                       fd.read())
-
 
 # Format expected by setup.py and docs/conf.py: string of form "X.Y.Z"
 _version_major = 0
@@ -58,5 +56,5 @@ MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
 PACKAGE_DATA = {'pytorch_3T27T': [pjoin('data', '*')]}
-REQUIRES = []  # use environment.yml for conda or requirements.txt for pip
-PYTHON_REQUIRES = ">= 3.8"
+REQUIRES = [] # use environment.yml for conda or requirements.txt for pip
+PYTHON_REQUIRES = ">= 3.7"
