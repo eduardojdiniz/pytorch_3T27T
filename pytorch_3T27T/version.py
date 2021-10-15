@@ -4,14 +4,14 @@ from pathlib import Path
 import io
 import re
 import pytorch_3T27T as pkg
-root = Path(pkg.__path__[0]).parent.absolute()
-readme = pjoin(root, 'README.md')
+#root = Path(pkg.__path__[0]).parent.absolute()
+#readme = pjoin(root, 'README.md')
 
-def read_long_description(readme):
-    text_type = type(u"")
-    with io.open(readme, mode="r", encoding="utf-8") as fd:
-        return re.sub(text_type(r":[a-z]+:`~?(.*?)`"), text_type(r"``\1``"),
-                      fd.read())
+#def read_long_description(readme):
+#    text_type = type(u"")
+#    with io.open(readme, mode="r", encoding="utf-8") as fd:
+#        return re.sub(text_type(r":[a-z]+:`~?(.*?)`"), text_type(r"``\1``"),
+#                      fd.read())
 
 # Format expected by setup.py and docs/conf.py: string of form "X.Y.Z"
 _version_major = 0
@@ -44,7 +44,8 @@ MAINTAINER_EMAIL = "eduardojdiniz@gmail.com"
 DESCRIPTION = ("p3T27T: Image-to-image translation of 3T to 7T brain MRI ",
                "using Generative Adversarial Networks ",
                "- a step towards longitudinal harmonization"),
-LONG_DESCRIPTION = read_long_description(readme)
+#LONG_DESCRIPTION = read_long_description(readme)
+LONG_DESCRIPTION = ""
 URL = "http://github.com/eduardojdiniz/pytorch_3T27T"
 DOWNLOAD_URL = ""
 LICENSE = "BSD-3-Clause"
