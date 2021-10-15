@@ -56,7 +56,5 @@ MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
 PACKAGE_DATA = {'pytorch_3T27T': [pjoin('data', '*')]}
-REQUIRES = [
-    "pytorch=1.9.0",
-] # use environment.yml for conda or requirements.txt for pip
+REQUIRES = [] # use environment.yml for conda or requirements.txt for pip
 PYTHON_REQUIRES = ">= 3.7"
