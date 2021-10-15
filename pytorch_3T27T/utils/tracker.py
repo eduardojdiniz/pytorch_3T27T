@@ -5,6 +5,8 @@
 
 from torch.utils.tensorboard import SummaryWriter
 
+__all__ = ['TensorboardWriter']
+
 
 class TensorboardWriter:
     def __init__(self, writer_dir, enabled):

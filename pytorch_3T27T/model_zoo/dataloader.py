@@ -11,7 +11,7 @@ class MNISTDataLoader(BaseDataLoader):
     MNIST data loading demo using BaseDataLoader
     """
     def __init__(self, transform, data_dir, batch_size, shuffle,
-                 validation_split, num_workers, train=True, worker_init_fn=None,
+                 validation_split, nworkers, train=True, worker_init_fn=None,
                  generator=None):
 
         self.data_dir = data_dir
@@ -31,14 +31,13 @@ class MNISTDataLoader(BaseDataLoader):
 
         self.init_kwargs = {
             'batch_size': batch_size,
-            'num_workers': num_workers,
+            'num_workers': nworkers,
             'worker_init_fn': worker_init_fn,
             'generator': generator
         }
 
         super().__init__(self.train_dataset, shuffle=shuffle,
                          **self.init_kwargs)
-
 
     def split_validation(self):
         if self.val_dataset is None:

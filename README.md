@@ -212,8 +212,6 @@ $ conda activate <your_repo_name>
 $ <your_repo_name> train-hello
 ```
 
-[![asciicast](https://asciinema.org/a/244658.svg)](https://asciinema.org/a/244658)
-
 ### Checkpoints
 -----------
 You can specify the name of the training session in config files:

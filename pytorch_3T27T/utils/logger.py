@@ -8,7 +8,7 @@ import logging
 import logging.config
 from pathlib import Path
 
-from .backer import log_path
+from .backer import get_log_path
 
 # When you set a logging level in Python using the standard module, you’re
 # telling the library you want to handle all events from that level on up. If
@@ -25,6 +25,9 @@ from .backer import log_path
 #  DEBUG      10
 #  NOTSET     00
 LOG_LEVEL = logging.INFO
+
+
+__all__ = ['setup_logging', 'setup_logger']
 
 
 def setup_logging(trial_config, log_config="logging.yml") -> None:
@@ -44,14 +47,14 @@ def setup_logging(trial_config, log_config="logging.yml") -> None:
     if not log_config.exists():
         logging.basicConfig(level=LOG_LEVEL)
         logger = logging.getLogger("setup")
-        msg= f'"{log_config}" not found. Using basicConfig.'
+        msg = f'"{log_config}" not found. Using basicConfig.'
         logger.warning(msg)
 
     with open(log_config, "rt") as f:
         config = yaml.safe_load(f.read())
 
     # modify logging paths based on run config
-    trial_path = log_path(trial_config)
+    trial_path = get_log_path(trial_config)
     for _, handler in config["handlers"].items():
         if "filename" in handler:
             handler["filename"] = str(trial_path / handler["filename"])

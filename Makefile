@@ -20,6 +20,42 @@ else
 HAS_CONDA=True
 endif
 
+REGEX := "*'$(PROJECT_NAME)'*"
+ENVS=$(shell conda env list | awk '{print $$1}' )
+
+ifeq ($(shell echo ${ENVS} | egrep "${REGEX}"),)
+HAS_ENV=True
+else
+HAS_ENV=False
+endif
+
+ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER)))
+PYTHON_VERSION="3.8"
+else
+PYTHON_VERSION="2.7"
+endif
+
+# When installing multiple packages in a script, the installation needs to be
+# done as the root user. There are three general options that can be used to do
+# this:
+
+# 1. Run the entire script as the root user (not recommended).
+# 2. Use the sudo command from the Sudo package.
+# 3. Use su -c "command arguments" (quotes required) which will ask for the
+# root password for every iteration of the loop.
+
+# One way to handle this situation is to create a short bash function that
+# automatically selects the appropriate method. Once the command is set in the
+# environment, it does not need to be set again.
+
+EUID := $(shell id -u -r)
+define as_root
+	@if [ $(EUID) -eq 0 ]; then $(1);\
+	elif [ -x /usr/bin/sudo ]; then sudo $(1);\
+	else su -c \\"$(1)\\";\
+	fi;
+endef
+
 #################################################################################
 # COMMANDS                                                                      #
 #################################################################################
@@ -42,19 +78,19 @@ lint:
 
 ## Upload Data to S3
 sync_data_to_s3:
-    ifeq (default,$(PROFILE))
+	ifeq (default,$(PROFILE))
 	aws s3 sync data/ s3://$(BUCKET)/data/
-    else
+	else
 	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
-    endif
+	endif
 
 ## Download Data from S3
 sync_data_from_s3:
-    ifeq (default,$(PROFILE))
+	ifeq (default,$(PROFILE))
 	aws s3 sync s3://$(BUCKET)/data/ data/
-    else
+	else
 	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
-    endif
+	endif
 
 ## Set up Git
 git:
@@ -92,35 +128,49 @@ github: git
 
 ## Set up python interpreter environment
 virtual_environment:
-    ifeq (True,$(HAS_CONDA))
-	@echo ">>> Detected conda, creating conda environment."
-    ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER)))
-	conda create -y -q --name $(PROJECT_NAME) python=3.8
+    ifeq (False,$(HAS_CONDA))
+		@echo ">>> Installing virtualenvwrapper if not already installed.\nMake sure the following lines are in shell startup file\n"; \
+		echo "export WORKON_HOME=$$HOME/.virtualenvs\nexport PROJECT_HOME=$$HOME/Devel\nsource /usr/local/bin/virtualenvwrapper.sh\n"; \
+		$(PYTHON_INTERPRETER) -m pip install -q virtualenv virtualenvwrapper;
+		@bash `which virtualenvwrapper.sh`; mkvirtualenv $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER)
+		@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
+    else ifneq (True,$(HAS_ENV))
+		@echo ">>> Detected conda. Creating conda environment.\n>>> Activate environment with:\nconda activate $(PROJECT_NAME)"
+		conda create -y -q --name $(PROJECT_NAME) python=$(PYTHON_VERSION)
     else
-	conda create -y -q --name $(PROJECT_NAME) python=2.7
-    endif
-	@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_NAME)"
-    else
-	$(PYTHON_INTERPRETER) -m pip install -q virtualenv virtualenvwrapper
-	@echo ">>> Installing virtualenvwrapper if not already installed.\nMake sure the following lines are in shell startup file\n\
-	export WORKON_HOME=$$HOME/.virtualenvs\nexport PROJECT_HOME=$$HOME/Devel\nsource /usr/local/bin/virtualenvwrapper.sh\n"
-	@bash -c "source `which virtualenvwrapper.sh`;mkvirtualenv $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER)"
-	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
+		@echo ">>> Detected conda. Environment already exists.\n>>> Activate environment with:\nconda activate $(PROJECT_NAME)"
     endif
 
 ## Install Python Dependencies
 install_requirements: test_environment
     ifeq (True,$(HAS_CONDA))
-	conda env update -q --name $(PROJECT_NAME) --file environment.yml --prune
+		@echo "$ source activate '$(PROJECT_NAME)' # activate conda environment"
+		conda env update -q --name $(PROJECT_NAME) --file environment.yml --prune
     else
-	workon $(PROJECT_NAME)
-	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
-	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
-	$(PYTHON_INTERPRETER) -m pip install -r requirements-dev.txt
+		@workon $(PROJECT_NAME) && \
+		$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel && \
+		$(PYTHON_INTERPRETER) -m pip install -r requirements.txt && \
+		$(PYTHON_INTERPRETER) -m pip install -r requirements-dev.txt
     endif
+	@echo "$ npm install -g npm # update npm";
+	$(call as_root, npm cache verify)
+	$(call npm install -g npm)
+	@echo "$ npm install -g doctoc # install doctoc";
+	$(call as_root, npm install -g doctoc)
+	@echo "$ npm audit fix # fix vulnerabilities";
+	$(call as_root, npm init --yes)
+	$(call as_root, npm i --package-lock-only)
+	$(call as_root, npm audit fix)
+	# Clean Jupyter notebooks of cell execution counts, metada, outputs and
+	# empty cells, preparing them for committing to version control
+	@echo "$ nb-clean add-filter --remove-empty-cells # add nb-clean filter to git"; \
+	nb-clean add-filter --remove-empty-cells;
+	@echo "$ ipython kernel install --user --name='$(PROJECT_NAME)' # add conda kernel to ipython"; \
+	ipython kernel install --user --name=$(PROJECT_NAME);
+	@echo "$ jupyter labextension install jupyterlab_vim # add vim binding to jupyter lab"; \
 
 ## Test python environment is setup correctly
-test_environment:
+test_environment: virtual_environment
 	$(PYTHON_INTERPRETER) test_environment.py
 
 #################################################################################

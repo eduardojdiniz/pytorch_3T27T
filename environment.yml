@@ -3,6 +3,7 @@ name: pytorch_3T27T
 channels:
   - nvidia
   - pytorch
+  - defaults
   - conda-forge
 
 dependencies:
@@ -15,6 +16,7 @@ dependencies:
   - numpy
   - scipy
   - scikit-learn
+  - scikit-image
   - matplotlib
   - seaborn
   - pandas
@@ -47,4 +49,6 @@ dependencies:
     - jupyterlab_vim
     - ipywidgets
     - nb-clean
+    - packaging
+    - GPUtil
     - -e .  # install package in development mode

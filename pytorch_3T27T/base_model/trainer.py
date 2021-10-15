@@ -1,5 +1,8 @@
+#!/usr/bin/env python
+# coding=utf-8
+
+from abc import ABCMeta, abstractmethod
 from os.path import join as pjoin
-from pathlib import Path
 import math
 
 import yaml
@@ -9,48 +12,45 @@ from pytorch_3T27T.utils import setup_logger, TensorboardWriter
 from pytorch_3T27T.utils import etc_path, trainer_paths
 
 
-logger = setup_logger(__name__)
-
-
 __all__ = ['BaseTrainer', 'AverageMeter']
 
 
-class BaseTrainer:
-    """
-    Base class for all trainers
-    """
-    def __init__(self, model, loss, metrics, optimizer, start_epoch, config,
+logger = setup_logger(__name__)
+
+
+class BaseTrainer(metaclass=ABCMeta):
+    """Base class for all trainers"""
+
+    def __init__(self, net, loss, metrics, optimizer, start_epoch, cfg,
                  device, dataloader=None, val_dataloader=None,
                  lr_scheduler=None):
-        self.model = model
+        self.net = net
         self.loss = loss
         self.metrics = metrics
         self.optimizer = optimizer
         self.start_epoch = start_epoch
-        self.config = config
+        self.cfg = cfg
         self.device = device
         self.dataloader = dataloader
         self.val_dataloader = val_dataloader
         self.lr_scheduler = lr_scheduler
 
-        self._setup_monitoring(config['training'])
+        self._setup_monitoring(cfg['training'])
 
-        self.checkpoint_dir, writer_dir = trainer_paths(config)
+        self.checkpoint_dir, writer_dir = trainer_paths(cfg)
         self.writer = TensorboardWriter(writer_dir,
-                                        config['training']['tensorboard'])
+                                        cfg['training']['tensorboard'])
 
         # Save configuration file into etc directory:
-        etc_dir = etc_path(config)
-        cfg_filename = config["trial_info"]["ID"] + ".yml"
-        config_save_path = pjoin(etc_dir, cfg_filename)
-        with open(config_save_path, 'w') as handle:
-            yaml.dump(config, handle, default_flow_style=False)
-
+        etc_dir = etc_path(cfg)
+        cfg_filename = cfg["trial_info"]["ID"] + ".yml"
+        cfg_save_path = pjoin(etc_dir, cfg_filename)
+        with open(cfg_save_path, 'w') as handle:
+            yaml.dump(cfg, handle, default_flow_style=False)
 
     def train(self):
-        """
-        Full training logic
-        """
+        """Full training logic"""
+
         logger.info('Start training ...')
         for epoch in range(self.start_epoch, self.epochs):
             result = self._train_epoch(epoch)
@@ -73,7 +73,7 @@ class BaseTrainer:
 
             # Print logged informations to the screen
             for key, value in results.items():
-                logger.info(f'{str(key):15s}: {value}')
+                logger.info('%15s: %s', str(key), value)
 
             # Evaluate model performance according to configured metric, save
             # best checkpoint as model_best
@@ -83,15 +83,12 @@ class BaseTrainer:
                     # Check whether model performance improved or not,
                     # according to specified metric(mnt_metric)
                     if self.mnt_mode == 'min':
-                        if (results[self.mnt_metric] < self.mnt_best):
-                            improved = True
-                        else:
-                            improved = False
+                        improved = bool(
+                            results[self.mnt_metric] < self.mnt_best)
+
                     elif self.mnt_mode == 'max':
-                        if (results[self.mnt_metric] > self.mnt_best):
-                            improved = True
-                        else:
-                            improved = False
+                        improved = bool(
+                            results[self.mnt_metric] > self.mnt_best)
                     # Never reached conditional. Added for readability
                     else:
                         improved = False
@@ -120,7 +117,7 @@ class BaseTrainer:
             if epoch % self.save_period == 0:
                 self._save_checkpoint(epoch, save_best=best)
 
-
+    @abstractmethod
     def _train_epoch(self, epoch: int) -> dict:
         """
         Training logic for an epoch.
@@ -130,9 +127,8 @@ class BaseTrainer:
         Returns a dictionary with the results of this run, like the value for
         each metric, etc
         """
-        raise NotImplementedError
 
-    def _save_checkpoint(self, epoch: int, save_best: bool=False) -> None:
+    def _save_checkpoint(self, epoch: int, save_best: bool = False) -> None:
         """
         Saving checkpoints
 
@@ -142,31 +138,30 @@ class BaseTrainer:
         log : logging information of the epoch
         save_best : if True, rename the saved checkpoint to 'model_best.pth'
         """
-        model = type(self.model).__name__
+
+        net = type(self.net).__name__
         state = {
-            'arch': model,
+            'arch': net,
             'epoch': epoch,
-            'state_dict': self.model.state_dict(),
+            'state_dict': self.net.state_dict(),
             'optimizer': self.optimizer.state_dict(),
             'monitor_best': self.mnt_best,
-            'config': self.config
+            'cfg': self.cfg
         }
         filename = pjoin(self.checkpoint_dir, f'ckpt_epoch-{epoch}.pth')
         torch.save(state, filename)
-        logger.info(f"Saving checkpoint: {filename} ...")
+        logger.info('Saving checkpoint: %s ...', filename)
         if save_best:
             best_path = pjoin(self.checkpoint_dir, 'model_best.pth')
             torch.save(state, best_path)
-            logger.info(f'Saving current best: {best_path}')
+            logger.info('Saving current best: %s', best_path)
 
+    def _setup_monitoring(self, cfg: dict) -> None:
+        """Configure trainer to monitor model performance and save best"""
 
-    def _setup_monitoring(self, config: dict) -> None:
-        """
-        Configuration to monitor model performance and save best.
-        """
-        self.epochs = config['epochs']
-        self.save_period = config['save_period']
-        self.monitor = config.get('monitor', 'off')
+        self.epochs = cfg['epochs']
+        self.save_period = cfg['save_period']
+        self.monitor = cfg.get('monitor', 'off')
         if self.monitor == 'off':
             self.mnt_mode = 'off'
             self.mnt_best = 0
@@ -174,13 +169,12 @@ class BaseTrainer:
             self.mnt_mode, self.mnt_metric = self.monitor.split()
             assert self.mnt_mode in ['min', 'max']
             self.mnt_best = math.inf if self.mnt_mode == 'min' else -math.inf
-            self.early_stop = config.get('early_stop', math.inf)
+            self.early_stop = cfg.get('early_stop', math.inf)
 
 
 class AverageMeter:
-    """
-    Computes and stores the average and current value.
-    """
+    """Computes and stores the average and current value"""
+
     def __init__(self, name):
         self.name = name
         self.reset()

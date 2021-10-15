@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-# Manages Reproducibility
+"""Manages Reproducibility"""
 
 import os
 import numpy as np
@@ -9,8 +9,12 @@ import random
 import torch
 
 
-def set_seed(logger, seed=None, seed_torch=True, seed_cudnn_benchmark=True,
-             seed_cudnn_deterministic=True):
+__all__ = ['set_seed', 'seed_worker', 'seed_generator']
+
+
+def set_seed(seed=None, logger=None, seed_torch=True,
+             seed_cudnn_benchmark=True, seed_cudnn_deterministic=True,
+             return_seed: bool = False):
     """Set seed of random number generators to limit the number of sources of
     nondeterministic behavior for a specific platform, device, and PyTorch
     release. For more information, see
@@ -18,23 +22,25 @@ def set_seed(logger, seed=None, seed_torch=True, seed_cudnn_benchmark=True,
 
     Parameters
     ----------
-    logger : logging.Logger object
     seed : int
         Seed for random number generators.
+    logger : logging.Logger
     seed_torch : bool
         If we will set the seed for torch random number generators.
-        Default: True
+        Default: True.
+    return_seed : bool
+        If True, return seed used for random number generators.
+        Default: False.
 
     Returns
     -------
-    seed : int
-        Seed used for random number generators
+    seed : Optional[int]
+        Seed used for random number generators, if `return_seed` is True
     """
     if seed is None:
         seed_str = "pytorch_3T27T"
         seed = [str(ord(letter) - 96) for letter in seed_str]
         seed = abs(int(''.join(seed))) % 2 ** 32
-        #seed = np.random.choice(2 ** 32)
 
     # Set python seed for custom operators
     random.seed(seed)
@@ -59,12 +65,14 @@ def set_seed(logger, seed=None, seed_torch=True, seed_cudnn_benchmark=True,
             # Ensure that the cuDNN convolution algorithm is deterministic
             torch.backends.cudnn.deterministic = True
 
-    logger.info(f'Random seed {seed} has been set.')
+    if logger:
+        logger.info(f'Random seed {seed} has been set.')
 
-    return seed
+    if return_seed:
+        return seed
 
 
-def seed_worker(worker_id, logger):
+def seed_worker(worker_id):
     """Set seed for Dataloader. DataLoader will reseed workers the "Randomness
     in multi-process data loading" algorithm. Use `worker_init_fn()` to
     preserve reproducibility. For more information, see
