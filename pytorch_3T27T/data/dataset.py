@@ -458,7 +458,7 @@ class ImageFolder(FolderDataset):
         List of the class names sorted alphabetically.
     class_to_idx : dict
         Dict with items (class_name, class_index).
-    imgs : list
+    samples : list
         List of (images, class_index) tuples
     targets : list
         The class_index value for each image in the dataset

@@ -30,7 +30,7 @@ class BaseLoss(nn.Module, metaclass=ABCMeta):
             either of those two args will override reduction. Default: 'mean'
         """
 
-        super(BaseLoss, self).__init__()
+        super().__init__()
         self.weight = weight
         self.reduction = reduction
 
